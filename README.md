@@ -14,7 +14,7 @@ B 站、抖音、小红书各有一套**原生解析器**，不依赖 yt-dlp 的
 
 ![媒体下载面板](./docs/panel.png)
 
-> 中文优先。English readers: the short version is below.
+> 中文优先。English readers: see [English](#english) at the bottom.
 
 ---
 
@@ -70,6 +70,25 @@ plugin_manager install_bundle target="link:/path/to/dsh-media-downloader"
 
 ---
 
+## 更新与卸载
+
+**更新**：拉取新版本后，在 DSH 里重新挂载一次即可，插件不写自己的安装目录。
+
+```bash
+cd <插件目录> && git pull
+plugin_manager install_bundle target="link:<插件目录>"
+```
+
+**卸载**：
+
+```bash
+plugin_manager remove_bundle target="dsh-media-downloader"
+```
+
+下载记录、cookie、登录态都放在 `~/.dsh/bili-dl/`，**卸载不会删除**。要彻底清干净就删掉这个目录。
+
+---
+
 ## 使用
 
 **面板**：点输入框旁的小图标，或直接在页面任意位置粘贴链接（自动弹出）。
@@ -105,6 +124,17 @@ plugin_manager install_bundle target="link:/path/to/dsh-media-downloader"
 
 ---
 
+## 兼容性
+
+| 项 | 要求 |
+|---|---|
+| DSH | Web GUI，需要 `webServer` 与 `tools` 服务 |
+| Node | ≥ 18（用到 `AbortSignal.timeout`、原生 fetch） |
+| 系统 | Windows 优先；ffmpeg 与 yt-dlp 的自动探测按 Windows 路径写，其它系统需自行装好并加进 PATH |
+| 浏览器 | 登录窗口依赖 Edge 或 Chrome |
+
+---
+
 ## 合规
 
 仅供个人离线观看/备份使用。请遵守各平台的服务条款与当地法律，不要用于二次分发或商业用途。
@@ -128,8 +158,45 @@ docs/架构说明.md       模块划分与数据流
 ```
 ---
 
+## 开发
+
+```bash
+git clone https://github.com/lohana20061023-29/dsh-media-downloader.git
+plugin_manager install_bundle target="link:<克隆目录>"
+```
+
+改完 `client.js` 刷新页面即可；改 `index.js` 或 `lib/` 需要重载插件（`remove_bundle` + `install_bundle`）。
+
+**改文件时注意编码**：`client.js` 若带上 UTF-8 BOM，模块会加载失败、界面整个消失且宿主无报错。用编辑器保存为「UTF-8 无 BOM」。
+
+目录职责见 [docs/架构说明.md](./docs/架构说明.md)，发版流程见 [docs/发版流程.md](./docs/发版流程.md)。
+
+---
+
+## 更新日志
+
+见 [CHANGELOG.md](./CHANGELOG.md)。
+
 ## 许可
 
 [MIT](LICENSE) © 2026 dsh-media contributors
 
 用、改、再分发都可以，保留版权声明即可。
+
+---
+
+## English
+
+**dsh-media-downloader** is a DeepSeek Harness plugin that downloads media from Bilibili, Douyin (TikTok China), Xiaohongshu (RED) and any site yt-dlp supports.
+
+- **Bilibili** — official web API with WBI signing; up to 4K when logged in, DASH streams remuxed losslessly with ffmpeg
+- **Douyin** — share-page SSR; watermark-free video, image posts, covers, author avatars. No login needed (an anonymous `ttwid` is minted automatically)
+- **Xiaohongshu** — mobile share page; image posts in original resolution and H.264/H.265 video streams. No login needed (uses the `xsec_token` embedded in the share link)
+- **Everything else** — delegated to yt-dlp
+
+Paste a link anywhere in the DSH web UI and a picker appears. Pick video quality, audio track, cover ratio, images or the author avatar; files land in your configured folder.
+
+Install: `plugin_manager install_bundle target="link:/path/to/repo"`.
+Agents can call the `media_fetch` tool with `{"url": "...", "quality": "1080"}`.
+
+License: MIT.

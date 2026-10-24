@@ -54,9 +54,6 @@
   ],
   "license": "MIT",
   "author": "Lohana",
-  "publishConfig": {
-    "access": "public"
-  },
   "engines": {
     "node": ">=18"
   }

@@ -1003,7 +1003,12 @@ window.__ModuleLoader__.load({
 
           /* 封面 / 头像 */
           info ? h('div', { className: 'bili-sec', key: 'e' }, [
-            h('div', { className: 'bili-sec-h' }, [h('span', { key: 'a' }, '封面 / 头像')]),
+            h('div', { className: 'bili-sec-h' }, [
+              h('span', { key: 'a' }, '封面 / 头像'),
+              h('small', { key: 'b' }, (pick.coverIds || []).length
+                ? '点一下取消'
+                : (pick.avatar ? '未选封面 = 只下头像' : '未选择 = 不下载')),
+            ]),
             h('div', { className: 'bili-sec-b' }, [
               h('div', { className: 'bili-row', style: { gap: 18 } }, [
                 h('div', { key: 'cv', style: { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' } },

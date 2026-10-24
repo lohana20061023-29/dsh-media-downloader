@@ -1,6 +1,6 @@
 {
   "name": "dsh-media-downloader",
-  "version": "1.5.10",
+  "version": "1.6.0",
   "type": "module",
   "description": "Multi-site media downloader for DSH: Bilibili, Douyin and Xiaohongshu via native parsers, other sites via yt-dlp",
   "exports": {

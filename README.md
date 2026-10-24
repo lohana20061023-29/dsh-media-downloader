@@ -1,8 +1,30 @@
 # 媒体下载 · dsh-media
 
-DSH 插件：粘一条链接，弹出选择器，挑你要的东西下载。
+**给 DeepSeek Harness 的多平台下载插件：粘一条链接，弹出选择器，视频、图片、封面、头像按需勾。**
 
-B 站、抖音、小红书走**原生解析器**（不依赖 yt-dlp 的站点适配），其余站点交给 yt-dlp。
+B 站、抖音、小红书各有一套**原生解析器**，不依赖 yt-dlp 的站点适配；
+其余站点仍走 yt-dlp，所以覆盖面不缩水。
+
+> **抖音和小红书不需要登录**。B 站高清、YouTube 会员内容才需要。
+
+[![version](https://img.shields.io/badge/version-1.5.2-blue.svg)](./package.json)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![platform](https://img.shields.io/badge/platform-DSH%20Web%20GUI-6f42c1.svg)](#)
+[![deps](https://img.shields.io/badge/npm%20dependencies-none-success.svg)](./package.json)
+
+> 中文优先。English readers: the short version is below.
+
+---
+
+## 为什么用它
+
+官方界面本身没有下载能力，而网页版 B 站匿名只给 480P、抖音和小红书又各有一套风控。
+这个插件做的是把这些差异藏起来——**你只负责粘链接，剩下的按平台自动选对路子**：
+
+- **一个输入口**：面板图标、输入框、页面任意位置粘贴，三种方式都能唤起
+- **该有的都能勾**：视频画质、独立音轨（含转 MP3）、封面（多比例）、图文图片（多张）、作者头像
+- **不需要登录就别让你登录**：抖音签匿名 `ttwid`、小红书用链接自带的 `xsec_token`
+- **登录不污染日常浏览器**：独立 profile，cookie 只写进 `~/.dsh/bili-dl/`
 
 ---
 

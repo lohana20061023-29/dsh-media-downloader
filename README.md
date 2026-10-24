@@ -60,7 +60,7 @@ git clone https://github.com/lohana20061023-29/dsh-media-downloader.git
 plugin_manager install_bundle target="link:/path/to/dsh-media-downloader"
 ```
 
-包名 `@local/dsh-media`（仓库名是 `dsh-media-downloader`，两者不同属正常），宿主入口 `index.js`，客户端入口 `client.js`。
+包名 `dsh-media-downloader`（仓库名是 `dsh-media-downloader`，两者不同属正常），宿主入口 `index.js`，客户端入口 `client.js`。
 
 依赖：
 

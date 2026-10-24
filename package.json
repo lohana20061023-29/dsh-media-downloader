@@ -1,5 +1,5 @@
 {
-  "name": "@local/dsh-media",
+  "name": "dsh-media-downloader",
   "version": "1.5.2",
   "private": true,
   "type": "module",
@@ -34,5 +34,27 @@
       "immediately": true,
       "inject": []
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lohana20061023-29/dsh-media-downloader.git"
+  },
+  "homepage": "https://github.com/lohana20061023-29/dsh-media-downloader#readme",
+  "bugs": {
+    "url": "https://github.com/lohana20061023-29/dsh-media-downloader/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "bilibili",
+    "douyin",
+    "xiaohongshu",
+    "yt-dlp",
+    "download"
+  ],
+  "license": "MIT",
+  "author": "Lohana",
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: '@local/dsh-media',
+  id: 'dsh-media-downloader',
   factory(require) {
     const React = require('react');
     const h = React.createElement;

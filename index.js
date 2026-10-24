@@ -27,13 +27,14 @@ import { looksLikeDouyin, douyinProbe, startDouyinDownload } from './lib/douyin.
 import { looksLikeXhs, xhsProbe, startXhsDownload } from './lib/xhs.mjs';
 
 /** 版本号的唯一事实来源：package.json */
-const PKG_VERSION = (() => {
+/** 版本号每次请求现读：避免模块缓存导致升级后仍显示旧版本 */
+function readPkgVersion() {
   try {
     return JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version || '0.0.0';
   } catch {
     return '0.0.0';
   }
-})();
+}
 
 export const name = 'dsh-media';
 export const inject = ['tools'];
@@ -307,7 +308,7 @@ async function handleHttp(req, res, ctx) {
       /* B 站的登录态存在 state.cookie 里，不在 cookies.txt，单独并进去 */
       const logins = { ...(await detectLogins()), bilibili: Boolean(login?.login) };
       return sendJson(res, 200, {
-        ok: true, version: PKG_VERSION, outDir: state.outDir, ffmpeg, ytdlp, proxy: getProxy(), proxyDetected: detectedProxy || '',
+        ok: true, version: readPkgVersion(), outDir: state.outDir, ffmpeg, ytdlp, proxy: getProxy(), proxyDetected: detectedProxy || '',
         cookies: getCookieOpts(), logins, names: await readNames(),
         hasCookie: hasCookie(), login,
         pending: pending && Date.now() - pending.at < 120000 ? pending : null,

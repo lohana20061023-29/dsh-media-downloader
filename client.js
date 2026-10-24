@@ -272,7 +272,7 @@ window.__ModuleLoader__.load({
             audioId: audios[0]?.id ?? null,
             audioMp3: false,
             cover: false,
-            coverIds: (info?.covers || []).slice(0, 1).map((c) => c.id),
+            coverIds: [],   /* 默认不勾封面：只下视频/音频，需要时再点 */
             imageIds: (info?.images || []).map((c) => c.id),
             avatar: false,
           },
@@ -611,13 +611,13 @@ window.__ModuleLoader__.load({
 
 
 
-      /* 平台图标：自己画的简化几何形（不复制官方素材），缩到 16px 还能认出来 */
+/* B 站图标：用户提供的素材，已抠掉白底并压到 64px */
+      const BILI_ICON = 'data:image/png;base64,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';
+
+            /* 平台图标：自己画的简化几何形（不复制官方素材），缩到 16px 还能认出来 */
       const ICON_PATHS = {
-        bili: (c) => [
-          h('path', { d: 'M7.5 7 5 2.9M16.5 7 19 2.9', stroke: '#00A1D6', strokeWidth: 2.2, strokeLinecap: 'round', fill: 'none' }),
-          h('rect', { x: 2.8, y: 7, width: 18.4, height: 13.6, rx: 3.8, fill: 'none', stroke: '#00A1D6', strokeWidth: 2.3 }),
-          h('rect', { x: 7.8, y: 11.2, width: 2.6, height: 4.4, rx: 1.3, fill: '#00A1D6' }),
-          h('rect', { x: 13.6, y: 11.2, width: 2.6, height: 4.4, rx: 1.3, fill: '#00A1D6' }),
+        bili: () => [
+          h('image', { x: 0, y: 0, width: 24, height: 24, href: BILI_ICON, preserveAspectRatio: 'xMidYMid meet' }),
         ],
         youtube: (c) => [
           h('path', {

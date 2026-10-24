@@ -7,7 +7,7 @@ B 站、抖音、小红书各有一套**原生解析器**，不依赖 yt-dlp 的
 
 > **抖音和小红书不需要登录**。B 站高清、YouTube 会员内容才需要。
 
-[![version](https://img.shields.io/badge/version-1.5.2-blue.svg)](./package.json)
+[![version](https://img.shields.io/github/package-json/v/lohana20061023-29/dsh-media-downloader?label=version&color=blue)](./package.json)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![platform](https://img.shields.io/badge/platform-DSH%20Web%20GUI-6f42c1.svg)](#)
 [![deps](https://img.shields.io/badge/npm%20dependencies-none-success.svg)](./package.json)

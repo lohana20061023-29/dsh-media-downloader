@@ -27,11 +27,16 @@ B 站、抖音、小红书走**原生解析器**（不依赖 yt-dlp 的站点适
 这是 DSH 插件，不是独立程序。
 
 ```bash
-# 在 DSH profile 里挂成本地链接
-plugin_manager install_bundle target="link:/path/to/this/repo"
+git clone https://github.com/lohana20061023-29/dsh-media-downloader.git
 ```
 
-包名 `@local/dsh-media`，宿主入口 `index.js`，客户端入口 `client.js`。
+然后在 DSH 里挂成本地链接：
+
+```bash
+plugin_manager install_bundle target="link:/path/to/dsh-media-downloader"
+```
+
+包名 `@local/dsh-media`（仓库名是 `dsh-media-downloader`，两者不同属正常），宿主入口 `index.js`，客户端入口 `client.js`。
 
 依赖：
 

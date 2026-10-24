@@ -57,8 +57,10 @@ window.__ModuleLoader__.load({
         proxyDraft: '',
         job: null,
         busy: false,
+        pasteToast: null,
       };
       const listeners = new Set();
+      let pasteTimer = null;
       let timer = null;
 
       const get = () => state;
@@ -310,7 +312,7 @@ window.__ModuleLoader__.load({
       async function open(url) {
         if (url) {
           if (state.info && state.url === url) { set({ open: true }); return; }
-          set({ open: true, url, info: null, error: null, job: null });
+          set({ open: true, url, info: null, error: null, job: null, pasteToast: null });
           await probe(url);
           return;
         }
@@ -337,6 +339,20 @@ window.__ModuleLoader__.load({
       }
 
       function patchPick(patch) { set({ pick: { ...state.pick, ...patch } }); }
+
+      /** 页面任意位置粘贴到链接：先弹角落提示，不直接开面板 */
+      function notifyPaste(url) {
+        if (!url) return;
+        if (state.open) return;
+        if (pasteTimer) clearTimeout(pasteTimer);
+        set({ pasteToast: { url } });
+        pasteTimer = setTimeout(() => set({ pasteToast: null }), 6000);
+      }
+
+      function dismissPaste() {
+        if (pasteTimer) clearTimeout(pasteTimer);
+        set({ pasteToast: null });
+      }
 
       async function start() {
         const { pick, info, url } = state;
@@ -393,7 +409,7 @@ window.__ModuleLoader__.load({
         }
       }
 
-      return { get, set, subscribe, boot, watchPending, open, probe, patchPick, start, cancel, reveal, setOutDir, saveCookie, logout, openSettings, browseDir, startQr, cancelQr, saveCkBrowser, saveCkText, clearCk, openLogin, finishLogin, cancelLogin, dispose };
+      return { get, set, subscribe, boot, watchPending, open, probe, patchPick, start, cancel, reveal, setOutDir, saveCookie, logout, openSettings, browseDir, startQr, cancelQr, saveCkBrowser, saveCkText, clearCk, openLogin, finishLogin, cancelLogin, notifyPaste, dismissPaste, dispose };
     }
 
     /* ───────────────────────────── 样式 ───────────────────────────── */
@@ -524,7 +540,24 @@ window.__ModuleLoader__.load({
 @keyframes bili-tip-in{
   from{opacity:0;transform:translate(-50%,calc(-100% + 4px))}
   to{opacity:1;transform:translate(-50%,-100%)}
-}/* 图文笔记的图片网格 */
+}/* 粘贴后的角落提示条 */
+.bili-toast{position:fixed;right:26px;bottom:104px;z-index:2147483000;display:flex;align-items:center;gap:10px;
+  max-width:330px;padding:11px 13px;border-radius:13px;cursor:pointer;
+  background:var(--dsw-alias-bg-overlay,#fff);color:var(--dsw-alias-label-primary,#17233a);
+  border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.1));
+  box-shadow:0 12px 32px rgba(16,32,66,.16),0 2px 6px rgba(16,32,66,.08);
+  font-size:13px;line-height:1.35;user-select:none}
+.bili-toast:hover{border-color:var(--dsw-alias-button-info-fill,#2b6cf0)}
+.bili-toast-ic{width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;
+  background:var(--dsw-alias-button-info-fill,#2b6cf0);color:#fff;font-size:14px}
+.bili-toast-tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+.bili-toast-tx b{font-weight:600;font-size:13px}
+.bili-toast-tx span{font-size:11.5px;color:var(--dsw-alias-label-secondary,#6b7788)}
+.bili-toast-x{border:0;background:transparent;color:var(--dsw-alias-label-secondary,#8c97a6);
+  font-size:13px;padding:2px 4px;cursor:pointer;border-radius:6px}
+.bili-toast-x:hover{background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.06))}
+
+/* 图文笔记的图片网格 */
 .bili-plats{display:flex;flex-wrap:wrap;align-items:center;gap:5px;justify-content:center;max-width:320px;margin-top:2px}
 .bili-plat{font-size:11px;padding:1px 6px;border-radius:5px;
   background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));
@@ -878,7 +911,7 @@ window.__ModuleLoader__.load({
           !info && !s.loading ? h('div', { className: 'bili-empty', key: 'empty' }, [
             h('div', { key: 'a', style: { fontSize: 22 } }, '⬇'),
             h('div', { key: 'b' }, '把视频链接粘到上面的输入框，回车即可解析。'),
-            h('div', { key: 'c', className: 'bili-hint' }, '在页面任意位置粘贴链接也会自动弹出这个选择器。'),
+            h('div', { key: 'c', className: 'bili-hint' }, '在页面任意位置粘贴链接，会先在右下角提示，点一下才打开。'),
             h('div', { key: 'p', className: 'bili-hint bili-plats' }, [
               h('span', { key: 'l', className: 'bili-hint' }, '支持：'),
               h('span', { key: 'b', className: 'bili-plat' }, 'B 站'),
@@ -1088,10 +1121,32 @@ window.__ModuleLoader__.load({
      * 样式必须常驻：只挂在 Panel 里的话，面板没打开过时整份 CSS 就不存在，
      * 输入框旁那个按钮会退回浏览器默认样式（方块）。
      */
+    /** 角落提示条：页面任意位置粘到链接时出现，点了才打开面板 */
+    function PasteToast({ store }) {
+      const s = useStore(store);
+      const t = s.pasteToast;
+      if (!t || s.open) return null;
+      return h('div', {
+        className: 'bili-toast', role: 'status', title: '点击打开媒体下载',
+        onClick: () => store.open(t.url),
+      }, [
+        h('span', { className: 'bili-toast-ic', key: 'i' }, '⬇'),
+        h('span', { className: 'bili-toast-tx', key: 't' }, [
+          h('b', { key: 'a' }, '检测到视频链接'),
+          h('span', { key: 'b' }, '点击打开媒体下载'),
+        ]),
+        h('button', {
+          className: 'bili-toast-x', key: 'x', title: '关闭',
+          onClick: (e) => { e.stopPropagation(); store.dismissPaste(); },
+        }, '✕'),
+      ]);
+    }
+
     function Root({ store }) {
       return h(React.Fragment, null,
         h('style', { key: 'bili-css' }, CSS),
         h(Panel, { store }),
+        h(PasteToast, { store }),
       );
     }
     /** 一份封面：缩略图 + 实测比例（3:4 / 4:3 / 16:9） */
@@ -1177,7 +1232,7 @@ window.__ModuleLoader__.load({
             const text = e.clipboardData?.getData('text') || '';
             if (BILI_RE.test(text)) {
               const hit = text.match(/https?:\/\/[^\s"'<>]+/);
-              store.open(hit ? hit[0] : text.trim());
+              store.notifyPaste(hit ? hit[0] : text.trim());
             }
           };
           document.addEventListener('paste', onPaste, true);

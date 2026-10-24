@@ -12,6 +12,8 @@ B 站、抖音、小红书各有一套**原生解析器**，不依赖 yt-dlp 的
 [![platform](https://img.shields.io/badge/platform-DSH%20Web%20GUI-6f42c1.svg)](#)
 [![deps](https://img.shields.io/badge/npm%20dependencies-none-success.svg)](./package.json)
 
+![媒体下载面板](./docs/panel.png)
+
 > 中文优先。English readers: the short version is below.
 
 ---

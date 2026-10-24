@@ -185,6 +185,12 @@ plugin_manager install_bundle target="link:<克隆目录>"
 
 ---
 
+## 赞助
+
+如果这个插件帮你省了时间，可以请我喝杯咖啡。两个码长期有效，金额随意。
+
+<img src="./docs/sponsor.png" width="620" alt="赞助：微信 / 支付宝">
+
 ## English
 
 **dsh-media-downloader** is a DeepSeek Harness plugin that downloads media from Bilibili, Douyin (TikTok China), Xiaohongshu (RED) and any site yt-dlp supports.

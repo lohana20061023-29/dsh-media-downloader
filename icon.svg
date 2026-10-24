@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Bilibili Downloader">
+  <rect width="64" height="64" rx="15" fill="#FB7299"/>
+  <rect x="13" y="14" width="38" height="25" rx="7" fill="#fff" fill-opacity="0.95"/>
+  <path d="M32 20v13" stroke="#FB7299" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M26.5 28.5 32 34l5.5-5.5" stroke="#FB7299" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M22 45h20" stroke="#fff" stroke-width="4.2" stroke-linecap="round" fill="none"/>
+  <circle cx="18.5" cy="21.5" r="2.1" fill="#FB7299"/>
+  <circle cx="25" cy="21.5" r="2.1" fill="#FB7299"/>
+</svg>

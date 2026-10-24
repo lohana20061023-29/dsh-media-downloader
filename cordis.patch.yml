@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-media
+      name: '@local/dsh-media'

@@ -1,0 +1,37 @@
+{
+  "name": "@local/dsh-media",
+  "version": "1.5.2",
+  "private": true,
+  "type": "module",
+  "description": "Multi-site media downloader for DSH: Bilibili, Douyin and Xiaohongshu via native parsers, other sites via yt-dlp",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/bili.mjs",
+    "lib/ytdlp.mjs",
+    "lib/qr.mjs",
+    "lib/douyin.mjs",
+    "lib/xhs.mjs",
+    "lib/browser-login.mjs",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "docs/*.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

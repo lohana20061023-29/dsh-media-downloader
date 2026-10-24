@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path';
 import { spawn, execFile } from 'node:child_process';
 import {
   probe, startDownload, getJob, listJobs, cancelJob, fetchImage,
-  findFfmpeg, looksLikeBilibili, parseTarget, VIDEO_QN, AUDIO_ID,
+  findFfmpeg, looksLikeBilibili, parseTarget, expandBiliShort, VIDEO_QN, AUDIO_ID,
   setCookie, loginStatus, hasCookie, qrGenerate, qrPoll, registerImage,
   setProxy, getProxy,
 } from './lib/bili.mjs';
@@ -214,7 +214,9 @@ async function probeUniversal(url) {
   const text = String(url || '').trim();
   if (!text) throw new Error('请输入视频链接');
   if (looksLikeBilibili(text)) {
-    const info = { ...await probe(text), source: 'bilibili' };
+    /* b23.tv 短链先跟跳到完整地址，否则 parseTarget 认不出 BV 号 */
+    const target = await expandBiliShort(text);
+    const info = { ...await probe(target), source: 'bilibili' };
     registerImage(info.cover);
     registerImage(info.up?.face);
     (info.covers || []).forEach((c) => registerImage(c.url));

@@ -1217,7 +1217,8 @@ window.__ModuleLoader__.load({
 
     /* ───────────────────────────── 插件装配 ───────────────────────────── */
 
-    const BILI_RE = /(BV[0-9A-Za-z]{10})|(av\d{6,})|(bilibili\.com\/video)|(b23\.tv)/;
+    /* 粘贴检测：覆盖所有原生支持的平台，其余站点交给输入框手动回车 */
+    const BILI_RE = /(BV[0-9A-Za-z]{10})|(av\d{6,})|(bilibili\.com\/video)|(b23\.tv)|(xiaohongshu\.com|xhslink\.com)|(douyin\.com)|youtube\.com|youtu\.be|(?:^|\/\/)x\.com|tiktok\.com|vimeo\.com/i;
 
     return {
       inject: ['slots'],

@@ -452,7 +452,12 @@ function notifyPaste(url) {
         });
       }
 
-      function openSettings() {
+      function setCopyToast(on) {
+      set({ copyToast: on });
+      call('/config', { copyToast: on }).catch(() => {});
+    }
+
+    function openSettings() {
         set({
           settingsOpen: true,
           dirDraft: state.outDir || '',
@@ -473,7 +478,7 @@ function notifyPaste(url) {
         }
       }
 
-      return { get, set, subscribe, notifyCopy, pushTheme, boot, watchPending, open, probe, patchPick, start, cancel, reveal, setOutDir, saveCookie, logout, openSettings, browseDir, startQr, cancelQr, saveCkBrowser, saveCkText, clearCk, openLogin, finishLogin, cancelLogin, notifyPaste, dismissPaste, dispose };
+      return { get, set, subscribe, notifyCopy, pushTheme, setCopyToast, boot, watchPending, open, probe, patchPick, start, cancel, reveal, setOutDir, saveCookie, logout, openSettings, browseDir, startQr, cancelQr, saveCkBrowser, saveCkText, clearCk, openLogin, finishLogin, cancelLogin, notifyPaste, dismissPaste, dispose };
     }
 
     /* ───────────────────────────── 样式 ───────────────────────────── */
@@ -898,6 +903,17 @@ function notifyPaste(url) {
                 }),
               ]),
               h('div', { className: 'bili-row' }, [
+                h('label', { className: 'bili-chk', key: 'ct' }, [
+                  h('input', {
+                    type: 'checkbox', key: 'i',
+                    checked: s.copyToast !== false,
+                    onChange: (e) => store.setCopyToast(e.target.checked),
+                  }),
+                  h('span', { key: 's' }, '复制链接时在屏幕角落提示'),
+                ]),
+                h('span', { className: 'bili-hint', key: 'cth', style: { flex: 1 } }, '关掉后复制不再弹窗'),
+              ]),
+              h('div', { className: 'bili-row' }, [
                 h('span', {
                   className: 'bili-hint', key: 'h', style: { flex: 1 },
                 }, '所有文件都保存到这一个目录，目录不存在会自动创建。代理只用于 B 站以外的站点。'),
@@ -1297,6 +1313,7 @@ function notifyPaste(url) {
           const handleCopyText = (text) => {
             const raw = String(text || '');
             if (!BILI_RE.test(raw)) return;
+            if (store.get().copyToast === false) return;
             const hit = raw.match(/https?:\/\/[^\s"'<>]+/);
             store.notifyCopy(hit ? hit[0] : raw.trim());
           };

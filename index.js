@@ -112,6 +112,7 @@ async function applyProxy(override) {
 let state = {
   outDir: DEFAULT_OUT, ffmpeg: '', cookie: '', proxy: '',
   cookiesBrowser: '', cookiesFile: '',
+  copyToast: true,   /* 复制链接时是否在屏幕角落提示 */
 };
 let loaded = false;
 
@@ -193,6 +194,11 @@ let clipWatchProc = null;
 let lastWatchSpawn = 0;
 let lastNotified = { url: '', at: 0 };
 
+/* 常驻监听器是独立进程，靠这个文件知道开关状态：'1' 允许弹窗，'0' 不弹 */
+function syncToastFlag(on) {
+  try { writeFileSyncSync(join(tmpdir(), 'dsh-toast-enabled.txt'), on ? '1' : '0', 'utf8'); } catch {}
+}
+
 function notifyOnce(url) {
   const now = Date.now();
   if (lastNotified.url === url && now - lastNotified.at < 4000) return false;
@@ -208,7 +214,7 @@ function ensureClipboardWatcher(hostHeader) {
     if (clipWatchProc) return true;
 
     /* 心跳文件：监听器每轮都会刷新它；心跳新鲜就不再起新的，绝不杀任何进程 */
-    const hb = join(tmpdir(), 'dsh-clipboard-watch.hb');
+    const hb = join(tmpdir(), 'dsh-corner-watch.hb');
     try {
       const age = Date.now() - statSyncSync(hb).mtimeMs;
       if (age < 15000) return true;
@@ -219,9 +225,9 @@ function ensureClipboardWatcher(hostHeader) {
     lastWatchSpawn = now;
 
     const dir = dirname(fileURLToPath(import.meta.url));
-    const script = join(dir, 'assets', 'clipboard-watch.ps1');
+    const script = join(dir, 'assets', 'corner-watch.ps1');
     const base = String(hostHeader || '127.0.0.1:3000').replace(/^https?:\/\//, '').replace(/'/g, '');
-    const vbs = join(tmpdir(), 'dsh-clipboard-watch.vbs');
+    const vbs = join(tmpdir(), 'dsh-corner-watch.vbs');
     const content = [
       'Set sh = CreateObject("WScript.Shell")',
       `sh.Run "powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File ""${script}"" -Base ""${base}""", 0, False`,
@@ -401,6 +407,7 @@ async function handleHttp(req, res, ctx) {
       try { writeFileSyncSync(join(tmpdir(), 'dsh-media-host.txt'), String(req.headers.host || ''), 'utf8'); } catch {}
       ensureClipboardWatcher(req.headers.host);
       await loadState();
+      syncToastFlag(state.copyToast !== false);
       const ffmpeg = await findFfmpeg(state.ffmpeg);
       const ytdlp = await resolveYtDlp().catch(() => null);
       const login = await cachedLogin();
@@ -408,6 +415,7 @@ async function handleHttp(req, res, ctx) {
       const logins = { ...(await detectLogins()), bilibili: Boolean(login?.login) };
       return sendJson(res, 200, {
         ok: true, version: readPkgVersion(), outDir: state.outDir, ffmpeg, ytdlp, proxy: getProxy(), proxyDetected: detectedProxy || '',
+        copyToast: state.copyToast !== false,
         cookies: getCookieOpts(), logins, names: await readNames(),
         hasCookie: hasCookie(), login,
         pending: pending && Date.now() - pending.at < 120000 ? pending : null,
@@ -537,7 +545,13 @@ async function handleHttp(req, res, ctx) {
     if (route === '/notify' && method === 'POST') {
       const body = await readBody(req);
       const target = String(body.url || '');
+      if (state.copyToast === false) return sendJson(res, 200, { ok: true, shown: false, disabled: true });
       if (!notifyOnce(target)) return sendJson(res, 200, { ok: true, shown: false, dedup: true });
+      /* 常驻监听器活着时由它自己弹窗（250ms 内），这里不再另起进程免重复 */
+      try {
+        const age = Date.now() - statSyncSync(join(tmpdir(), 'dsh-corner-watch.hb')).mtimeMs;
+        if (age < 15000) return sendJson(res, 200, { ok: true, shown: true, via: 'watcher' });
+      } catch { }
       const r = showCornerToast(target, req.headers.host);
       return sendJson(res, 200, { ok: true, shown: r === true, error: r && r.error ? r.error : null });
     }
@@ -621,8 +635,10 @@ async function handleHttp(req, res, ctx) {
       if (typeof body.outDir === 'string' && body.outDir.trim()) patch.outDir = body.outDir.trim();
       if (typeof body.ffmpeg === 'string') patch.ffmpeg = body.ffmpeg.trim();
       if (typeof body.proxy === 'string') patch.proxy = body.proxy.trim();
+      if (typeof body.copyToast === 'boolean') patch.copyToast = body.copyToast;
       const next = await saveState(patch);
-      return sendJson(res, 200, { ok: true, outDir: next.outDir, ffmpeg: next.ffmpeg, proxy: getProxy() });
+      syncToastFlag(next.copyToast !== false);
+      return sendJson(res, 200, { ok: true, outDir: next.outDir, ffmpeg: next.ffmpeg, proxy: getProxy(), copyToast: next.copyToast !== false });
     }
 
     /* 系统“选择文件夹”对话框：借宿主的 directoryPicker，拿不到就让界面自己输 */

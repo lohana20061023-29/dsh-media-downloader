@@ -443,13 +443,25 @@ function notifyPaste(url) {
       }
 
       async function setOutDir(dir, proxyOverride) {
-        const body = { outDir: dir };
-        if (proxyOverride !== undefined) body.proxy = proxyOverride;
-        const res = await call('/config', body);
-        set({
-          outDir: res.outDir, dirDraft: res.outDir,
-          proxy: res.proxy || '', settingsOpen: false,
-        });
+        const next = String(dir || '').trim();
+        if (!next) return;
+        const prev = state.outDir;
+        /* 先乐观更新：目录立刻反映到底部，网络慢或失败也不会看起来"没反应" */
+        set({ outDir: next, dirDraft: next, settingsOpen: false, error: null });
+        try {
+          const body = { outDir: next };
+          if (proxyOverride !== undefined) body.proxy = proxyOverride;
+          const res = await call('/config', body);
+          if (res && res.outDir) {
+            set({ outDir: res.outDir, dirDraft: res.outDir, proxy: res.proxy || '' });
+          }
+        } catch (e) {
+          /* 失败就回滚，并把原因显出来，不再静默 */
+          set({
+            outDir: prev, dirDraft: prev,
+            error: '保存目录失败：' + (e && e.message ? e.message : String(e)),
+          });
+        }
       }
 
       function setCopyToast(on) {

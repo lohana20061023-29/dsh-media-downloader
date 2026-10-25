@@ -590,7 +590,8 @@ async function handleHttp(req, res, ctx) {
       await loadState();
       const info = body.info || await probeUniversal(body.url);
       const job = await dispatchDownload(body.url, info, {
-        outDir: body.outDir || state.outDir,
+        /* 目录以宿主保存的为准：客户端状态可能没同步，跟着它走会下错地方 */
+        outDir: state.outDir || body.outDir,
         pick: body.pick || {},
         ffmpeg: state.ffmpeg,
       });

@@ -455,6 +455,11 @@ function notifyPaste(url) {
           if (res && res.outDir) {
             set({ outDir: res.outDir, dirDraft: res.outDir, proxy: res.proxy || '' });
           }
+          /* 回读校准 */
+          try {
+            const ping = await call('/ping');
+            if (ping && ping.outDir) set({ outDir: ping.outDir, dirDraft: ping.outDir, proxy: ping.proxy || '' });
+          } catch { }
         } catch (e) {
           /* 失败就回滚，并把原因显出来，不再静默 */
           set({

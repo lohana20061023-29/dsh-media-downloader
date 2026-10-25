@@ -18,6 +18,10 @@ using System.Runtime.InteropServices;
 public class Clip {
   [DllImport("user32.dll")] public static extern uint GetClipboardSequenceNumber();
 }
+public class Win {
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+}
 public class Dwm {
   [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 }
@@ -117,6 +121,20 @@ function Build-Window {
       $body = @{ url = $script:currentUrl } | ConvertTo-Json -Compress
       Invoke-RestMethod -Uri "http://$Base/bili-dl/toast/open" -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 8 | Out-Null
     } catch { }
+
+    # 把 DSH 主窗口拉到前台：最小化就先还原，再置顶激活
+    try {
+      $proc = Get-Process -Name 'DeepSeek Harness' -ErrorAction SilentlyContinue |
+        Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+      if ($proc) {
+        [void][Win]::ShowWindow($proc.MainWindowHandle, 9)   # SW_RESTORE
+        [void][Win]::SetForegroundWindow($proc.MainWindowHandle)
+        Log "activate dsh pid=$($proc.Id)"
+      } else {
+        Log 'activate: dsh window not found'
+      }
+    } catch { Log "activate failed: $($_.Exception.Message)" }
+
     if ($script:hideTimer) { $script:hideTimer.Stop() }
     if ($script:win) { $script:win.Hide() }
   })

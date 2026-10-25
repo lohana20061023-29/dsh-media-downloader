@@ -351,14 +351,55 @@ function notifyCopy(url) {
 /* 把当前主题同步给宿主，供屏幕角落提示使用 */
 function pushTheme() {
   try {
-    const cs = getComputedStyle(document.documentElement);
-    const pick = (name) => String(cs.getPropertyValue(name) || '').trim();
+    const els = [document.body, document.documentElement].filter(Boolean);
+    const raw = (name) => {
+      for (const el of els) {
+        const v = getComputedStyle(el).getPropertyValue(name).trim();
+        if (v) return v;
+      }
+      return '';
+    };
+    const asColor = (name) => {
+      const v = raw(name);
+      return /^#|^rgba?\(|^color\(/.test(v) ? v : '';
+    };
+
+    /* 强调色兜底：DSH 的 --dsw-alias-brand-primary 常是 var(--edge-accent)，
+       解析不出具体颜色时，统计页面上最高频的饱和色 */
+    const saturated = () => {
+      const tally = new Map();
+      const all = document.querySelectorAll('*');
+      const limit = Math.min(all.length, 4000);
+      for (let i = 0; i < limit; i++) {
+        const cs = getComputedStyle(all[i]);
+        for (const val of [cs.backgroundColor, cs.color, cs.borderTopColor]) {
+          const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(val || '');
+          if (!m) continue;
+          const r = +m[1], g = +m[2], b = +m[3];
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          if (max - min >= 50 && max >= 90 && max <= 250) {
+            const key = `${r},${g},${b}`;
+            tally.set(key, (tally.get(key) || 0) + 1);
+          }
+        }
+      }
+      let best = '', bestCount = 0;
+      for (const [key, count] of tally) {
+        if (count > bestCount) { bestCount = count; best = key; }
+      }
+      if (!best) return '';
+      const [r, g, b] = best.split(',');
+      return `rgb(${r}, ${g}, ${b})`;
+    };
+
+    const accent = asColor('--dsw-alias-brand-primary') || saturated();
+
     call('/theme', {
-      accent: pick('--dsw-alias-brand-primary'),
-      bg: pick('--dsw-alias-bg-overlay'),
-      fg: pick('--dsw-alias-label-primary'),
-      sub: pick('--dsw-alias-label-secondary'),
-      border: pick('--dsw-alias-border-l1'),
+      accent,
+      bg: asColor('--dsw-alias-bg-overlay') || asColor('--dsw-alias-bg-base') || '',
+      fg: asColor('--dsw-alias-label-primary'),
+      sub: asColor('--dsw-alias-label-secondary'),
+      border: asColor('--dsw-alias-border-l1'),
       font: getComputedStyle(document.body).fontFamily || '',
     }).catch(() => {});
   } catch { /* 主题读取失败不影响主流程 */ }

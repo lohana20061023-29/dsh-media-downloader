@@ -1,7 +1,7 @@
 ﻿param(
   [Parameter(Mandatory = $true)][string]$Url,
   [Parameter(Mandatory = $true)][string]$Base,
-  [int]$Seconds = 6,
+  [int]$Seconds = 8,
   [string]$Accent = '',
   [string]$Bg = '',
   [string]$Fg = '',
@@ -40,6 +40,12 @@ public class Dwm {
   $cSub    = if ($light) { '#5B6B82' } else { '#9BA7B6' }
   $cClose  = if ($light) { '#8595AA' } else { '#7C8798' }
   $cAccent = '#2F6BEF'
+  try {
+    $reg = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\DWM' -Name AccentColor -ErrorAction Stop
+    $v = [uint32]$reg.AccentColor
+    $r = $v -band 0xFF; $g = ($v -shr 8) -band 0xFF; $b = ($v -shr 16) -band 0xFF
+    $cAccent = ('#{0:X2}{1:X2}{2:X2}' -f $r, $g, $b)
+  } catch { }
 
   # DSH 通过 JSON 文件下发主题
   if ($ThemeFile -and (Test-Path $ThemeFile)) {

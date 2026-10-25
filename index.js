@@ -516,6 +516,10 @@ async function handleHttp(req, res, ctx) {
       return sendJson(res, 200, { ok: true, state: 'ok', login });
     }
 
+    if (route === '/theme' && method === 'GET') {
+      return sendJson(res, 200, { ok: true, theme: uiTheme });
+    }
+
     if (route === '/theme' && method === 'POST') {
       const body = await readBody(req);
       uiTheme = {
@@ -525,6 +529,7 @@ async function handleHttp(req, res, ctx) {
         sub: String(body.sub || ''),
         border: String(body.border || ''),
         font: String(body.font || ''),
+        debug: body.debug || null,
       };
       return sendJson(res, 200, { ok: true });
     }

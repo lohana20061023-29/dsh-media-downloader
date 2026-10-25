@@ -341,7 +341,30 @@ window.__ModuleLoader__.load({
       function patchPick(patch) { set({ pick: { ...state.pick, ...patch } }); }
 
       /** 页面任意位置粘贴到链接：先弹角落提示，不直接开面板 */
-      function notifyPaste(url) {
+function notifyCopy(url) {
+  pushTheme();
+  call('/notify', { url })
+    .then((r) => { if (!r || !r.shown) notifyPaste(url); })
+    .catch(() => notifyPaste(url));
+}
+
+/* 把当前主题同步给宿主，供屏幕角落提示使用 */
+function pushTheme() {
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const pick = (name) => String(cs.getPropertyValue(name) || '').trim();
+    call('/theme', {
+      accent: pick('--dsw-alias-brand-primary'),
+      bg: pick('--dsw-alias-bg-overlay'),
+      fg: pick('--dsw-alias-label-primary'),
+      sub: pick('--dsw-alias-label-secondary'),
+      border: pick('--dsw-alias-border-l1'),
+      font: getComputedStyle(document.body).fontFamily || '',
+    }).catch(() => {});
+  } catch { /* 主题读取失败不影响主流程 */ }
+}
+
+function notifyPaste(url) {
         if (!url) return;
         if (state.open) return;
         if (pasteTimer) clearTimeout(pasteTimer);
@@ -409,7 +432,7 @@ window.__ModuleLoader__.load({
         }
       }
 
-      return { get, set, subscribe, boot, watchPending, open, probe, patchPick, start, cancel, reveal, setOutDir, saveCookie, logout, openSettings, browseDir, startQr, cancelQr, saveCkBrowser, saveCkText, clearCk, openLogin, finishLogin, cancelLogin, notifyPaste, dismissPaste, dispose };
+      return { get, set, subscribe, notifyCopy, pushTheme, boot, watchPending, open, probe, patchPick, start, cancel, reveal, setOutDir, saveCookie, logout, openSettings, browseDir, startQr, cancelQr, saveCkBrowser, saveCkText, clearCk, openLogin, finishLogin, cancelLogin, notifyPaste, dismissPaste, dispose };
     }
 
     /* ───────────────────────────── 样式 ───────────────────────────── */
@@ -911,7 +934,7 @@ window.__ModuleLoader__.load({
           !info && !s.loading ? h('div', { className: 'bili-empty', key: 'empty' }, [
             h('div', { key: 'a', style: { fontSize: 22 } }, '⬇'),
             h('div', { key: 'b' }, '把视频链接粘到上面的输入框，回车即可解析。'),
-            h('div', { key: 'c', className: 'bili-hint' }, '在页面任意位置粘贴链接，会先在右下角提示，点一下才打开。'),
+            h('div', { key: 'c', className: 'bili-hint' }, '复制到支持的链接时，右下角会先提示，点一下才打开。'),
             h('div', { key: 'p', className: 'bili-hint bili-plats' }, [
               h('span', { key: 'l', className: 'bili-hint' }, '支持：'),
               h('span', { key: 'b', className: 'bili-plat' }, 'B 站'),
@@ -1228,17 +1251,29 @@ window.__ModuleLoader__.load({
         ctx.effect(() => {
           store.boot();
           store.watchPending();
-          /* 在页面任意位置粘贴 B 站链接 → 自动弹选择器 */
-          const onPaste = (e) => {
-            const text = e.clipboardData?.getData('text') || '';
-            if (BILI_RE.test(text)) {
-              const hit = text.match(/https?:\/\/[^\s"'<>]+/);
-              store.notifyPaste(hit ? hit[0] : text.trim());
-            }
+  store.pushTheme();
+          /* 复制到支持的链接 → 角落提示；粘贴不再触发 */
+          const handleCopyText = (text) => {
+            const raw = String(text || '');
+            if (!BILI_RE.test(raw)) return;
+            const hit = raw.match(/https?:\/\/[^\s"'<>]+/);
+            store.notifyCopy(hit ? hit[0] : raw.trim());
           };
-          document.addEventListener('paste', onPaste, true);
+          const onCopy = (e) => {
+            /* 有些「复制链接」按钮会把内容写进事件本身 */
+            const fromEvent = String(e?.clipboardData?.getData?.('text') || '');
+            if (BILI_RE.test(fromEvent)) { handleCopyText(fromEvent); return; }
+            /* 其次用当前选区（选中文字后 Ctrl+C 的情形） */
+            const selected = String(window.getSelection?.()?.toString() || '');
+            if (BILI_RE.test(selected)) { handleCopyText(selected); return; }
+            /* 「复制链接」按钮这类没有选区的情况，读一次剪贴板 */
+            navigator.clipboard?.readText?.()
+              .then((text) => handleCopyText(text))
+              .catch(() => {});
+          };
+          document.addEventListener('copy', onCopy, true);
           return () => {
-            document.removeEventListener('paste', onPaste, true);
+            document.removeEventListener('copy', onCopy, true);
             store.dispose();
           };
         }, 'media-downloader');

@@ -7,9 +7,10 @@
  * 两者都落到 lib/bili.mjs 里的同一个 probe / startDownload。
  */
 import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { readFileSync, writeFileSync as writeFileSyncSync, existsSync as existsSyncSync, statSync as statSyncSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn, execFile } from 'node:child_process';
 import {
   probe, startDownload, getJob, listJobs, cancelJob, fetchImage,
@@ -141,6 +142,101 @@ async function saveState(patch) {
 
 /* ─────────────────────────── 待办选择器（Agent → 界面） ─────────────────────────── */
 /* 工具解析完视频后在这里留一个“待选”票据，界面轮询到就自动弹选择器。 */
+/* ── 屏幕角落提示窗（PowerShell + WPF，贴右下角、置顶、不占任务栏）── */
+let toastProc = null;
+function themeArgs() {
+  const t = uiTheme;
+  if (!t) return '';
+  try {
+    const file = join(tmpdir(), 'dsh-corner-theme.json');
+    writeFileSyncSync(file, JSON.stringify(t), 'utf8');
+    return ' -ThemeFile ""' + file + '""';
+  } catch {
+    return '';
+  }
+}
+
+function showCornerToast(url, hostHeader) {
+  try {
+    if (safeModeOn()) return false;
+    if (toastProc) { try { toastProc.kill(); } catch {} toastProc = null; }
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const script = join(dir, 'assets', 'corner-toast.ps1');
+    const base = String(hostHeader || '127.0.0.1:3000').replace(/^https?:\/\//, '').replace(/'/g, '');
+    const safeUrl = String(url).replace(/"/g, '""');
+    /* 用 wscript 起一个无控制台的 PowerShell：直接 spawn powershell 会带出控制台窗口，
+       而 -WindowStyle Hidden 又会把 WPF 窗口一起隐藏 */
+    const vbs = join(tmpdir(), 'dsh-corner-toast.vbs');
+    const content = [
+      'Set sh = CreateObject("WScript.Shell")',
+      `sh.Run "powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File ""${script}"" -Url ""${safeUrl}"" -Base ""${base}""${themeArgs()}", 0, False`,
+    ].join('\r\n');
+    writeFileSyncSync(vbs, content, 'utf8');
+    toastProc = spawn('wscript.exe', ['//B', '//nologo', vbs], { windowsHide: true, stdio: 'ignore', detached: true });
+    toastProc.on('exit', () => { toastProc = null; });
+    toastProc.unref();
+    return true;
+  } catch (e) {
+    return { error: String(e && e.message ? e.message : e) };
+  }
+}
+
+
+/* ── 系统剪贴板监听（复制到受支持链接 → 弹角落窗）── */
+let uiTheme = null;
+
+/* 安全模式：不 spawn 任何外部进程（排障用，建 %TEMP%\dsh-media-safe-mode 即可） */
+function safeModeOn() {
+  try { return existsSyncSync(join(tmpdir(), 'dsh-media-safe-mode')); } catch { return true; }
+}
+let clipWatchProc = null;
+let lastWatchSpawn = 0;
+let lastNotified = { url: '', at: 0 };
+
+function notifyOnce(url) {
+  const now = Date.now();
+  if (lastNotified.url === url && now - lastNotified.at < 4000) return false;
+  lastNotified = { url, at: now };
+  return true;
+}
+
+function ensureClipboardWatcher(hostHeader) {
+  try {
+    if (safeModeOn()) return false;
+    /* 总开关：%TEMP%\dsh-media-no-watcher 存在时不启动（排障用） */
+    if (existsSyncSync(join(tmpdir(), 'dsh-media-no-watcher'))) return false;
+    if (clipWatchProc) return true;
+
+    /* 心跳文件：监听器每轮都会刷新它；心跳新鲜就不再起新的，绝不杀任何进程 */
+    const hb = join(tmpdir(), 'dsh-clipboard-watch.hb');
+    try {
+      const age = Date.now() - statSyncSync(hb).mtimeMs;
+      if (age < 15000) return true;
+    } catch { /* 没有心跳文件就走启动流程 */ }
+
+    const now = Date.now();
+    if (now - lastWatchSpawn < 30000) return false;   /* 至少间隔 30 秒，避免堆进程 */
+    lastWatchSpawn = now;
+
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const script = join(dir, 'assets', 'clipboard-watch.ps1');
+    const base = String(hostHeader || '127.0.0.1:3000').replace(/^https?:\/\//, '').replace(/'/g, '');
+    const vbs = join(tmpdir(), 'dsh-clipboard-watch.vbs');
+    const content = [
+      'Set sh = CreateObject("WScript.Shell")',
+      `sh.Run "powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File ""${script}"" -Base ""${base}""", 0, False`,
+    ].join('\r\n');
+    writeFileSyncSync(vbs, content, 'utf8');
+    clipWatchProc = spawn('wscript.exe', ['//B', '//nologo', vbs], { windowsHide: true, stdio: 'ignore', detached: true });
+    clipWatchProc.on('error', () => { clipWatchProc = null; });
+    clipWatchProc.on('exit', () => { clipWatchProc = null; });
+    clipWatchProc.unref();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 let pending = null;
 
 /* 登录态 60 秒缓存，省掉面板每次打开的 nav 请求。 */
@@ -301,6 +397,9 @@ async function handleHttp(req, res, ctx) {
 
   try {
     if (route === '/ping') {
+      /* 监听器跨应用重启存活，靠这个文件拿到当前端口 */
+      try { writeFileSyncSync(join(tmpdir(), 'dsh-media-host.txt'), String(req.headers.host || ''), 'utf8'); } catch {}
+      ensureClipboardWatcher(req.headers.host);
       await loadState();
       const ffmpeg = await findFfmpeg(state.ffmpeg);
       const ytdlp = await resolveYtDlp().catch(() => null);
@@ -415,6 +514,38 @@ async function handleHttp(req, res, ctx) {
       await saveState({ cookie: result.cookie });
       loginCache = { at: Date.now(), value: login };
       return sendJson(res, 200, { ok: true, state: 'ok', login });
+    }
+
+    if (route === '/theme' && method === 'POST') {
+      const body = await readBody(req);
+      uiTheme = {
+        accent: String(body.accent || ''),
+        bg: String(body.bg || ''),
+        fg: String(body.fg || ''),
+        sub: String(body.sub || ''),
+        border: String(body.border || ''),
+        font: String(body.font || ''),
+      };
+      return sendJson(res, 200, { ok: true });
+    }
+
+    if (route === '/notify' && method === 'POST') {
+      const body = await readBody(req);
+      const target = String(body.url || '');
+      if (!notifyOnce(target)) return sendJson(res, 200, { ok: true, shown: false, dedup: true });
+      const r = showCornerToast(target, req.headers.host);
+      return sendJson(res, 200, { ok: true, shown: r === true, error: r && r.error ? r.error : null });
+    }
+
+    if (route === '/toast/open' && method === 'POST') {
+      const body = await readBody(req);
+      const url = String(body.url || '').trim();
+      try {
+        await loadState();
+        const info = await probeUniversal(url);
+        pending = { url, at: Date.now(), info };
+      } catch { pending = null; }
+      return sendJson(res, 200, { ok: true, ready: Boolean(pending) });
     }
 
     if (route === '/pending') {

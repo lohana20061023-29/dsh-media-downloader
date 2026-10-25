@@ -486,8 +486,11 @@ function notifyPaste(url) {
         set({ busy: true, error: null });
         try {
           const res = await call('/pick-dir', {});
-          if (res.dir) set({ dirDraft: res.dir });
-          else if (res.error) set({ error: res.error });
+          if (res.dir) {
+            /* 选完就直接落盘，不再要求用户回头再点一次「保存」 */
+            set({ dirDraft: res.dir });
+            await setOutDir(res.dir);
+          } else if (res.error) set({ error: res.error });
         } catch (err) {
           set({ error: err.message });
         } finally {

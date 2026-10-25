@@ -1,4 +1,4 @@
-/**
+﻿/**
  * dsh-media — 多平台媒体下载插件的宿主半边。
  *
  * 一份操作、两个调用方：
@@ -7,7 +7,7 @@
  * 两者都落到 lib/bili.mjs 里的同一个 probe / startDownload。
  */
 import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
-import { readFileSync, writeFileSync as writeFileSyncSync, existsSync as existsSyncSync, statSync as statSyncSync } from 'node:fs';
+import { readFileSync, writeFileSync as writeFileSyncSync, existsSync as existsSyncSync, statSync as statSyncSync, appendFileSync as appendFileSyncSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -632,6 +632,11 @@ async function handleHttp(req, res, ctx) {
 
     if (route === '/config' && method === 'POST') {
       const body = await readBody(req);
+      /* 每次保存都留痕，排查「点了没反应」用 */
+      try {
+        appendFileSyncSync(join(tmpdir(), 'dsh-media-config.log'),
+          `[${new Date().toISOString()}] body=${JSON.stringify(body)}\n`, 'utf8');
+      } catch {}
       const patch = {};
       if (typeof body.outDir === 'string' && body.outDir.trim()) patch.outDir = body.outDir.trim();
       if (typeof body.ffmpeg === 'string') patch.ffmpeg = body.ffmpeg.trim();

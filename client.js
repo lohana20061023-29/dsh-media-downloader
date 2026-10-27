@@ -575,7 +575,7 @@ function notifyPaste(url) {
 .bili-qr-box svg{display:block;width:100%;height:100%}
 .bili-qr-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;justify-content:center}
 .bili-qr-state{font-size:12.5px;font-weight:600;line-height:1.4}
-.bili-lnk:disabled{opacity:.5;cursor:default;text-decoration:none}.bili-sec{border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.08));border-radius:10px;overflow:hidden}
+.bili-lnk:disabled{opacity:.5;cursor:default;text-decoration:none}.bili-sec{border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.08));border-radius:10px;overflow:hidden;flex-shrink:0}
 .bili-sec-h{display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--dsw-alias-bg-layer-1,#fafafa);
   font-size:12px;font-weight:600;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.06))}
 .bili-sec-h small{font-weight:400;color:var(--dsw-alias-label-secondary,#6b6b6b);margin-left:auto;font-size:11px}
